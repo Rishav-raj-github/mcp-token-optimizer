@@ -73,3 +73,6 @@ To add this optimizer server to your Claude Desktop config, modify your `claude_
 ```
 
 Restart Claude Desktop, and the agent will automatically use these tools to optimize its inputs!
+
+<!-- Achievement Unlocker -->
+
