@@ -76,3 +76,5 @@ Always respond in JSON.
     # Trigger word in query
     res_trigger = minifier.optimize(prompt, query="Render a chart please")
     assert "Plot data using svg" in res_trigger["text"]
+
+# Verification comment for second Pull Request badge unlock.
