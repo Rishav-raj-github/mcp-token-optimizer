@@ -62,13 +62,13 @@ sys_minifier = SystemPromptMinifier()
 
 # Initialize some mock cache items for demonstration
 s_cache.set("What are the system requirements for installation?", "The system requirements are Python 3.10+ and a minimum of 4GB RAM.")
-s_cache.set("How do I configure the model context protocol server?", "To configure the MCP server, add it to your claude_desktop_config.json with command python and path to mcp_server.py.")
+s_cache.set("How do I configure the model context protocol server?", "To configure the MCP server, add it to your client configuration JSON file with the Python executable and server path.")
 
 # Encoder mappings for token comparison
 encoders = {
-    "GPT-4 / Claude (cl100k_base)": tiktoken.get_encoding("cl100k_base"),
-    "GPT-4o / o1 (o200k_base)": tiktoken.get_encoding("o200k_base"),
-    "Llama 3 (Approximate)": tiktoken.get_encoding("cl100k_base")  # Llama 3 has a larger vocab, cl100k is a good surrogate for mock comparison
+    "cl100k_base (Standard)": tiktoken.get_encoding("cl100k_base"),
+    "o200k_base (Optimized)": tiktoken.get_encoding("o200k_base"),
+    "Llama-3 (Standard)": tiktoken.get_encoding("cl100k_base")  # Llama 3 has a larger vocab, cl100k is a good surrogate for mock comparison
 }
 
 def estimate_all_tokens(text: str) -> dict:

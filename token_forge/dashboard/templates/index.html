@@ -522,8 +522,8 @@
                 <div id="config-cache_align" class="config-section">
                     <label>Alignment block size (tokens)</label>
                     <select id="cache-block" class="select-input">
-                        <option value="1024">1024 (Claude Standard)</option>
-                        <option value="2048">2048 (Gemini standard)</option>
+                        <option value="1024">1024 (cl100k Standard)</option>
+                        <option value="2048">2048 (o200k Standard)</option>
                         <option value="512">512</option>
                     </select>
                     <label style="margin-top:0.8rem">Context syntax style</label>
@@ -702,7 +702,7 @@
 
                     <div>
                         <div class="panel-title" style="margin-top:1.2rem; margin-bottom: 0.5rem; font-size:1rem; border:none; padding:0">
-                            <span>Claude Desktop MCP Settings</span>
+                            <span>MCP Client Settings</span>
                         </div>
                         <div class="mcp-config-box">
                             <button class="copy-btn" onclick="copyMCPConfig()">Copy</button>
@@ -884,7 +884,7 @@ Always format code output in markdown blocks. Keep explanations concise.`
             chart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['cl100k_base (GPT-4/Claude)', 'o200k_base (GPT-4o/o1)', 'Llama 3 (Approx)'],
+                    labels: ['cl100k_base (Standard)', 'o200k_base (Optimized)', 'Llama-3 (Standard)'],
                     datasets: [
                         {
                             label: 'Original Tokens',
@@ -1008,7 +1008,7 @@ Always format code output in markdown blocks. Keep explanations concise.`
                 document.getElementById("char-after").innerText = `${res.optimized_text.length} chars`;
 
                 // Update Stats
-                const metrics = res.token_metrics["GPT-4 / Claude (cl100k_base)"];
+                const metrics = res.token_metrics["cl100k_base (Standard)"];
                 document.getElementById("stat-tokens-before").innerText = metrics.before;
                 document.getElementById("stat-tokens-after").innerText = metrics.after;
                 document.getElementById("stat-tokens-saved").innerText = metrics.saved;
@@ -1032,9 +1032,9 @@ Always format code output in markdown blocks. Keep explanations concise.`
                 }
 
                 // Update Chart
-                const cl100k = res.token_metrics["GPT-4 / Claude (cl100k_base)"];
-                const o200k = res.token_metrics["GPT-4o / o1 (o200k_base)"];
-                const llama = res.token_metrics["Llama 3 (Approximate)"];
+                const cl100k = res.token_metrics["cl100k_base (Standard)"];
+                const o200k = res.token_metrics["o200k_base (Optimized)"];
+                const llama = res.token_metrics["Llama-3 (Standard)"];
                 
                 chart.data.datasets[0].data = [cl100k.before, o200k.before, llama.before];
                 chart.data.datasets[1].data = [cl100k.after, o200k.after, llama.after];
