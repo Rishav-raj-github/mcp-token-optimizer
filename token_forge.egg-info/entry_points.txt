@@ -1,0 +1,3 @@
+[console_scripts]
+tokenforge-dashboard = token_forge.dashboard.app:main
+tokenforge-mcp = token_forge.mcp_server:main

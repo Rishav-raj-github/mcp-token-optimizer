@@ -1,100 +1,180 @@
 import re
 import math
+import json
 from mcp.server.fastmcp import FastMCP
 
 # Initialize FastMCP Server
 mcp = FastMCP("Token-Optimizer")
 
-@mcp.tool()
-def prune_context(text: str, focus_keywords: str = "", max_chars: int = 4000) -> str:
-    """
-    Prunes verbose logs, stack traces, or document content to minimize token usage.
-    Strips redundant timestamps, boilerplate headers, duplicate lines, and preserves focus areas.
-    """
-    if not text:
-        return ""
-        
-    lines = text.split("\n")
-    unique_lines = []
-    seen = set()
-    
-    # 1. Remove exact duplicate lines to save tokens
-    for line in lines:
-        cleaned = line.strip()
-        if cleaned not in seen:
-            seen.add(cleaned)
-            unique_lines.append(line)
-            
-    # 2. Filter lines using simple regex rules (e.g., standard timestamp-heavy log headers)
-    # Replaces long timestamps like "2026-07-03T17:28:46.123456+05:30 [INFO] ..." with "[INFO] ..."
-    processed_lines = []
-    timestamp_pattern = re.compile(r'^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[+-]\d{2}:?\d{2}|Z)?\s*')
-    
-    for line in unique_lines:
-        line_clean = timestamp_pattern.sub("", line)
-        processed_lines.append(line_clean)
-        
-    # 3. Focus keyword prioritization: if focus keywords are given, select lines containing them
-    if focus_keywords:
-        keywords = [kw.strip().lower() for kw in focus_keywords.split(",") if kw.strip()]
-        prioritized = []
-        context_window = 1  # lines of context around matches
-        
-        for i, line in enumerate(processed_lines):
-            line_lower = line.lower()
-            if any(kw in line_lower for kw in keywords):
-                # Grab context lines
-                start = max(0, i - context_window)
-                end = min(len(processed_lines), i + context_window + 1)
-                for idx in range(start, end):
-                    if processed_lines[idx] not in prioritized:
-                        prioritized.append(processed_lines[idx])
-        result = "\n".join(prioritized)
-    else:
-        # Default behavior: rank lines by length and preserve structure (head/tail logic for logs)
-        if len(processed_lines) > 50:
-            head = processed_lines[:20]
-            tail = processed_lines[-20:]
-            result = "\n".join(head) + "\n\n... [TRUNCATED REDUNDANT MIDDLE LOGS TO SAVE TOKENS] ...\n\n" + "\n".join(tail)
-        else:
-            result = "\n".join(processed_lines)
-            
-    # Enforce hard length limit
-    if len(result) > max_chars:
-        result = result[:max_chars] + "\n... [TRUNCATED DUE TO SIZE LIMIT] ..."
-        
-    return result
+# Import our modular optimizers
+# (We add try/except so that it can run even if not installed in path yet)
+try:
+    from token_forge.optimizers.cache_aligner import CacheAligner
+    from token_forge.optimizers.semantic import SemanticCompressor
+    from token_forge.optimizers.code_ast import CodeASTMinifier
+    from token_forge.optimizers.logs import LogCondenser
+    from token_forge.optimizers.data_format import DataMinifier
+    from token_forge.optimizers.chat_history import ChatHistorySummarizer
+    from token_forge.optimizers.stopwords import StopwordStripper
+    from token_forge.optimizers.rag_filter import RAGFilter
+    from token_forge.optimizers.xml_minifier import XMLMinifier
+    from token_forge.optimizers.semantic_cache import SemanticCache
+    from token_forge.optimizers.model_router import ModelRouter
+    from token_forge.optimizers.tool_pruner import ToolPruner
+    from token_forge.optimizers.system_prompt import SystemPromptMinifier
+except ImportError:
+    # Local relative import fallback if executed from local directory
+    from token_forge.optimizers.cache_aligner import CacheAligner
+    from token_forge.optimizers.semantic import SemanticCompressor
+    from token_forge.optimizers.code_ast import CodeASTMinifier
+    from token_forge.optimizers.logs import LogCondenser
+    from token_forge.optimizers.data_format import DataMinifier
+    from token_forge.optimizers.chat_history import ChatHistorySummarizer
+    from token_forge.optimizers.stopwords import StopwordStripper
+    from token_forge.optimizers.rag_filter import RAGFilter
+    from token_forge.optimizers.xml_minifier import XMLMinifier
+    from token_forge.optimizers.semantic_cache import SemanticCache
+    from token_forge.optimizers.model_router import ModelRouter
+    from token_forge.optimizers.tool_pruner import ToolPruner
+    from token_forge.optimizers.system_prompt import SystemPromptMinifier
+
+# Instantiate optimization engines
+aligner = CacheAligner()
+semantic_compressor = SemanticCompressor()
+ast_minifier = CodeASTMinifier()
+log_condenser = LogCondenser()
+data_minifier = DataMinifier()
+history_summarizer = ChatHistorySummarizer()
+stopword_stripper = StopwordStripper()
+rag_filter = RAGFilter()
+xml_minifier = XMLMinifier()
+semantic_cache = SemanticCache()
+model_router = ModelRouter()
+tool_pruner = ToolPruner()
+system_minifier = SystemPromptMinifier()
 
 @mcp.tool()
-def align_prompt_cache(text: str, target_block_tokens: int = 1024, chars_per_token: float = 4.0) -> dict:
+def align_prompt_cache(text: str, format_style: str = "markdown", target_block_tokens: int = 1024) -> str:
     """
-    Pads or slices context strings to align them exactly to LLM prompt cache block boundaries (typically 1024 tokens).
-    Prevents cache invalidation by ensuring prefix token count remains static across dynamic queries.
+    Pads prompt strings to align exactly to LLM cache block boundaries (typically 1024 tokens).
+    Prevents prompt cache invalidation by ensuring identical prefix token lengths.
+    
+    Args:
+        text: The prompt or context text to align.
+        format_style: The format of padding comment (markdown, python, javascript, raw).
+        target_block_tokens: The cache block size (default 1024).
     """
-    if not text:
-        return {"aligned_text": "", "original_tokens": 0, "padded_tokens": 0, "padding_chars_added": 0}
-        
-    # Estimate current token count
-    char_len = len(text)
-    estimated_tokens = max(1, int(char_len / chars_per_token))
+    res = aligner.optimize(text, format_style=format_style, target_block_tokens=target_block_tokens)
+    return res["text"]
+
+@mcp.tool()
+def prune_logs(text: str, max_head_lines: int = 25, max_tail_lines: int = 25) -> str:
+    """
+    Cleans up stack traces, build logs, and console outputs.
+    Strips redundant timestamps, hexadecimal memory addresses, duplicate errors, 
+    and truncates redundant middle log entries.
     
-    # Calculate next block boundary
-    blocks_needed = math.ceil(estimated_tokens / target_block_tokens)
-    target_tokens = blocks_needed * target_block_tokens
+    Args:
+        text: Raw log text.
+        max_head_lines: Number of starting lines to keep.
+        max_tail_lines: Number of trailing lines to keep.
+    """
+    res = log_condenser.optimize(text, max_head_lines=max_head_lines, max_tail_lines=max_tail_lines)
+    return res["text"]
+
+@mcp.tool()
+def compress_semantic_context(text: str, target_ratio: float = 0.6) -> str:
+    """
+    Prunes low-information sentences and grammatical fillers from a large context.
+    Uses TF-IDF rarity scoring to maintain core semantic structure at a lower token cost.
     
-    tokens_to_pad = target_tokens - estimated_tokens
-    chars_to_pad = int(tokens_to_pad * chars_per_token)
+    Args:
+        text: Input text/document to compress.
+        target_ratio: Ratio of original information to keep (e.g., 0.6 keeps 60%).
+    """
+    res = semantic_compressor.optimize(text, target_ratio=target_ratio)
+    return res["text"]
+
+@mcp.tool()
+def minify_code(code: str, language: str = "python", keep_docstrings: bool = True) -> str:
+    """
+    Minifies source code files by keeping only class/function signatures and API blueprints.
+    Replaces implementation bodies with '...' placeholders to reduce code context tokens by up to 85%.
     
-    # Pad using safe comment/whitespace spacing
-    padding = "\n" + " " * (chars_to_pad - 1)
-    aligned_text = text + padding
+    Args:
+        code: Raw source code string.
+        language: Programming language (python, javascript, typescript).
+        keep_docstrings: Whether to preserve code docstrings/comments.
+    """
+    res = ast_minifier.optimize(code, language=language, keep_docstrings=keep_docstrings)
+    return res["text"]
+
+@mcp.tool()
+def minify_data(data_json: str, target_format: str = "csv_or_kv") -> str:
+    """
+    Converts heavy structured JSON or YAML payloads into compact KV pairs or CSV strings.
+    Strips away syntax braces, brackets, and quotes to save up to 70% of payload tokens.
     
-    return {
-        "aligned_text": aligned_text,
-        "original_estimated_tokens": estimated_tokens,
-        "aligned_estimated_tokens": target_tokens,
-        "padding_chars_added": chars_to_pad
-    }
+    Args:
+        data_json: JSON string to compress.
+        target_format: Output format ('csv', 'kv', 'csv_or_kv').
+    """
+    res = data_minifier.optimize(data_json, target_format=target_format)
+    return res["text"]
+
+@mcp.tool()
+def optimize_rag_chunks(chunks_json: str, similarity_threshold: float = 0.65, min_score: float = 0.4) -> str:
+    """
+    Deduplicates and filters retrieved RAG chunks.
+    Removes low-relevance chunks and eliminates near-duplicate contexts.
+    
+    Args:
+        chunks_json: A JSON array of chunks: [{"text": "...", "score": 0.8}, ...]
+        similarity_threshold: Cosine/Jaccard similarity cutoff for redundancy.
+        min_score: Minimum relevance score to retain a chunk.
+    """
+    res = rag_filter.optimize(chunks_json, similarity_threshold=similarity_threshold, min_score=min_score)
+    return res["text"]
+
+@mcp.tool()
+def route_model(query: str) -> str:
+    """
+    Evaluates query complexity and recommends the optimal LLM tier (cheap vs flagship).
+    Saves API costs by routing simple classification/lookup queries to small models.
+    
+    Args:
+        query: Incoming user query.
+    """
+    res = model_router.route(query)
+    return json.dumps(res, indent=2)
+
+@mcp.tool()
+def minify_system_prompt(system_prompt: str, query: str) -> str:
+    """
+    Prunes optional sections of system prompts that are not relevant to the current user query.
+    Looks for <optional trigger="words"> blocks and removes them if the query doesn't match.
+    
+    Args:
+        system_prompt: The template system prompt containing optional tags.
+        query: The user's query to evaluate relevance.
+    """
+    res = system_minifier.optimize(system_prompt, query=query)
+    return res["text"]
+
+@mcp.tool()
+def strip_stopwords(text: str, aggressive: bool = False) -> str:
+    """
+    Removes common articles, determiners, and grammatical fillers to make text telegraphic.
+    
+    Args:
+        text: Input text.
+        aggressive: Set True to also remove common prepositions and auxiliary verbs.
+    """
+    res = stopword_stripper.optimize(text, aggressive=aggressive)
+    return res["text"]
+
+def main():
+    mcp.run()
 
 if __name__ == "__main__":
-    mcp.run()
+    main()

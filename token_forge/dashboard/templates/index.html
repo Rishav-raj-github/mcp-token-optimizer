@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TokenForge: High-Performance Token Optimizer & MCP Server</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- ChartJS for token comparison -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 28, 45, 0.45);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: hsla(245, 100%, 65%, 1);
+            --primary-glow: hsla(245, 100%, 65%, 0.35);
+            --secondary: hsla(180, 100%, 45%, 1);
+            --secondary-glow: hsla(180, 100%, 45%, 0.35);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent: hsla(280, 100%, 60%, 1);
+            --accent-glow: hsla(280, 100%, 60%, 0.35);
+            --success: hsla(142, 70%, 45%, 1);
+            --success-glow: hsla(142, 70%, 45%, 0.25);
+            --font-main: 'Outfit', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.15) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        header {
+            padding: 2.5rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.5rem;
+            box-shadow: 0 0 20px var(--primary-glow);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .logo-text h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: var(--font-code);
+        }
+
+        .mcp-badge {
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #a5b4fc;
+            padding: 0.4rem 1rem;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);
+        }
+
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--secondary);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--secondary-glow);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(6, 182, 212, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        .glass-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 1.8rem;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: var(--transition);
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(255,255,255,0.15);
+        }
+
+        .panel-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding-bottom: 0.8rem;
+        }
+
+        .panel-title span {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .select-input, .text-input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            color: var(--text-main);
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .select-input:focus, .text-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .config-section {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(255,255,255,0.03);
+            display: none;
+        }
+
+        .config-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px var(--primary-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Workspace main area */
+        .workspace-container {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary);
+        }
+
+        .stat-card.savings::after {
+            background: var(--success);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 0.4rem;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #ffffff;
+            font-family: var(--font-code);
+        }
+
+        .stat-delta {
+            font-size: 0.85rem;
+            color: var(--success);
+            margin-top: 0.2rem;
+            font-weight: 600;
+        }
+
+        .playground-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            min-height: 480px;
+        }
+
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-title {
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .editor-badge {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.75rem;
+            font-family: var(--font-code);
+            color: var(--text-muted);
+        }
+
+        .editor-box {
+            flex-grow: 1;
+            width: 100%;
+            height: 380px;
+            background: rgba(10, 15, 26, 0.8);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.2rem;
+            color: var(--text-main);
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .editor-box:focus {
+            border-color: var(--primary);
+            box-shadow: inset 0 0 10px rgba(99, 102, 241, 0.15);
+        }
+
+        .editor-box[readonly] {
+            background: rgba(16, 22, 38, 0.4);
+            cursor: not-allowed;
+        }
+
+        /* Bottom Row - Tokenizer Chart & Explanation */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .chart-card {
+            min-height: 300px;
+        }
+
+        .explanation-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .expl-list {
+            margin-top: 1rem;
+            list-style: none;
+        }
+
+        .expl-list li {
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            font-size: 0.9rem;
+        }
+
+        .expl-list li svg {
+            color: var(--secondary);
+            flex-shrink: 0;
+            margin-top: 0.15rem;
+        }
+
+        /* MCP Configuration Helper */
+        .mcp-config-box {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            padding: 1rem;
+            margin-top: 1rem;
+            position: relative;
+        }
+
+        .mcp-config-box pre {
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            overflow-x: auto;
+            color: #a5b4fc;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            color: var(--text-main);
+            padding: 0.3rem 0.6rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .copy-btn:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        /* Responsive */
+        @media (max-width: 1100px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+            .bottom-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .playground-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-icon">TF</div>
+            <div class="logo-text">
+                <h1>TokenForge</h1>
+                <p>LLM Context Optimization Suite</p>
+            </div>
+        </div>
+        <div class="mcp-badge">
+            <div class="badge-dot"></div>
+            <span>MCP Protocol Active</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- Left Column: Controls -->
+        <aside class="glass-panel">
+            <div class="panel-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <span>Optimization Panel</span>
+            </div>
+
+            <div class="control-group">
+                <label for="optimizer-select">Optimization Engine</label>
+                <select id="optimizer-select" class="select-input" onchange="switchOptimizer()">
+                    <option value="logs">🛠️ Log & Stack Trace Condenser</option>
+                    <option value="semantic">🧠 Semantic Context Compressor (LLMLingua-lite)</option>
+                    <option value="cache_align">⚡ Prompt Cache Block Aligner</option>
+                    <option value="code_ast">💻 AST-based Code Blueprint Extractor</option>
+                    <option value="data">📊 Payload Data flattener (JSON to CSV/KV)</option>
+                    <option value="chat_history">💬 Chat History window manager</option>
+                    <option value="stopwords">🪓 Grammar filler / Stopword Stripper</option>
+                    <option value="rag">📚 RAG Semantic Chunk Deduplicator</option>
+                    <option value="xml">🏷️ XML structural tag condenser</option>
+                    <option value="semantic_cache">💾 Semantic Query Response Cache</option>
+                    <option value="model_router">🧭 Smart Task Complexity Router</option>
+                    <option value="tool_pruner">🔧 Dynamic Tool Definition Selector</option>
+                    <option value="system_prompt">📝 System Prompt Context Minifier</option>
+                </select>
+            </div>
+
+            <!-- Configuration fields depending on selected optimizer -->
+            <div class="control-group">
+                <!-- Log Condenser Config -->
+                <div id="config-logs" class="config-section active">
+                    <label>Keep Head lines</label>
+                    <input type="number" id="log-head" class="text-input" value="25" min="1">
+                    <label style="margin-top:0.8rem">Keep Tail lines</label>
+                    <input type="number" id="log-tail" class="text-input" value="25" min="1">
+                </div>
+
+                <!-- Semantic Compressor Config -->
+                <div id="config-semantic" class="config-section">
+                    <label>Target Compression Ratio</label>
+                    <input type="range" id="sem-ratio" min="0.1" max="0.9" step="0.05" value="0.6" style="width:100%" oninput="document.getElementById('ratio-val').innerText = this.value">
+                    <div style="display:flex; justify-content:space-between; margin-top:0.3rem; font-size:0.85rem">
+                        <span>High Comp (10%)</span>
+                        <span id="ratio-val" style="font-weight:700; color:var(--primary)">0.6</span>
+                        <span>Low Comp (90%)</span>
+                    </div>
+                </div>
+
+                <!-- Cache Aligner Config -->
+                <div id="config-cache_align" class="config-section">
+                    <label>Alignment block size (tokens)</label>
+                    <select id="cache-block" class="select-input">
+                        <option value="1024">1024 (Claude Standard)</option>
+                        <option value="2048">2048 (Gemini standard)</option>
+                        <option value="512">512</option>
+                    </select>
+                    <label style="margin-top:0.8rem">Context syntax style</label>
+                    <select id="cache-format" class="select-input">
+                        <option value="markdown">Markdown (<!-- comment -->)</option>
+                        <option value="python">Python (# comment)</option>
+                        <option value="javascript">Javascript (// comment)</option>
+                    </select>
+                </div>
+
+                <!-- Code AST Config -->
+                <div id="config-code_ast" class="config-section">
+                    <label>Source Language</label>
+                    <select id="ast-lang" class="select-input">
+                        <option value="python">Python (AST Parsed)</option>
+                        <option value="javascript">JavaScript / TypeScript</option>
+                    </select>
+                    <label style="margin-top:0.8rem; display:flex; align-items:center; gap:0.5rem">
+                        <input type="checkbox" id="ast-docs" checked> Preserve docstrings
+                    </label>
+                </div>
+
+                <!-- Data format Config -->
+                <div id="config-data" class="config-section">
+                    <label>Target Format</label>
+                    <select id="data-format" class="select-input">
+                        <option value="csv_or_kv">Auto (CSV for arrays, KV for objects)</option>
+                        <option value="csv">Force CSV layout</option>
+                        <option value="kv">Force Flat Key-Value lines</option>
+                    </select>
+                </div>
+
+                <!-- Chat history Config -->
+                <div id="config-chat_history" class="config-section">
+                    <label>Keep recent turns fully intact</label>
+                    <input type="number" id="chat-turns" class="text-input" value="4" min="1">
+                </div>
+
+                <!-- Stopwords Config -->
+                <div id="config-stopwords" class="config-section">
+                    <label style="display:flex; align-items:center; gap:0.5rem">
+                        <input type="checkbox" id="stop-aggressive"> Aggressive filtering (aux verbs, prepositions)
+                    </label>
+                </div>
+
+                <!-- RAG Config -->
+                <div id="config-rag" class="config-section">
+                    <label>Jaccard Redundancy Threshold</label>
+                    <input type="number" id="rag-threshold" class="text-input" value="0.65" step="0.05" min="0" max="1">
+                    <label style="margin-top:0.8rem">Minimum Relevance Score</label>
+                    <input type="number" id="rag-min-score" class="text-input" value="0.4" step="0.05" min="0" max="1">
+                </div>
+
+                <!-- XML Config (No settings needed) -->
+                <div id="config-xml" class="config-section">
+                    <p style="font-size:0.85rem; color:var(--text-muted)">Condenses structural XML notation elements (docs, tags) and eliminates spaces between close tags.</p>
+                </div>
+
+                <!-- Semantic Cache Config -->
+                <div id="config-semantic_cache" class="config-section">
+                    <label>Match threshold (similarity)</label>
+                    <input type="number" id="cache-threshold" class="text-input" value="0.85" step="0.05" min="0" max="1">
+                </div>
+
+                <!-- Model Router (No configs) -->
+                <div id="config-model_router" class="config-section">
+                    <p style="font-size:0.85rem; color:var(--text-muted)">Routes simpleclassification / conversation to cheap models, reserves expensive models for coding/logic.</p>
+                </div>
+
+                <!-- Tool Pruner Config -->
+                <div id="config-tool_pruner" class="config-section">
+                    <label>User Intent Query</label>
+                    <input type="text" id="tool-query" class="text-input" placeholder="e.g., compile the database files">
+                    <label style="margin-top:0.8rem">Mandatory Tools (comma separated)</label>
+                    <input type="text" id="tool-mandatory" class="text-input" value="git_status,search_web">
+                </div>
+
+                <!-- System Prompt Config -->
+                <div id="config-system_prompt" class="config-section">
+                    <label>User Query</label>
+                    <input type="text" id="sys-query" class="text-input" placeholder="e.g., render a chart of user events">
+                </div>
+            </div>
+
+            <button class="btn" onclick="runOptimization()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Run Optimization
+            </button>
+        </aside>
+
+        <!-- Right Column: Stats & Playground -->
+        <div class="workspace-container">
+            <!-- Stats Cards Row -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Before (cl100k)</div>
+                    <div id="stat-tokens-before" class="stat-value">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">After (cl100k)</div>
+                    <div id="stat-tokens-after" class="stat-value">0</div>
+                </div>
+                <div class="stat-card savings">
+                    <div class="stat-label">Tokens Saved</div>
+                    <div id="stat-tokens-saved" class="stat-value">0</div>
+                    <div id="stat-tokens-pct" class="stat-delta">0% reduction</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">API Cost Savings</div>
+                    <div id="stat-cost-saved" class="stat-value" style="color:var(--success)">$0.00</div>
+                    <div class="stat-delta" style="color:var(--text-muted)">Based on cached read</div>
+                </div>
+            </div>
+
+            <!-- Playground Editors Side-by-Side -->
+            <div class="playground-grid">
+                <div class="editor-container">
+                    <div class="editor-header">
+                        <div class="editor-title">
+                            <span style="width:10px; height:10px; border-radius:50%; background-color:#ef4444"></span>
+                            Original Context Input
+                        </div>
+                        <div id="char-before" class="editor-badge">0 chars</div>
+                    </div>
+                    <textarea id="input-editor" class="editor-box" placeholder="Paste your log file, JSON, conversation, prompt, or code here..."></textarea>
+                </div>
+
+                <div class="editor-container">
+                    <div class="editor-header">
+                        <div class="editor-title">
+                            <span style="width:10px; height:10px; border-radius:50%; background-color:var(--success)"></span>
+                            Optimized Output Context
+                        </div>
+                        <div id="char-after" class="editor-badge">0 chars</div>
+                    </div>
+                    <textarea id="output-editor" class="editor-box" readonly placeholder="Resulting token-optimized output text will appear here..."></textarea>
+                </div>
+            </div>
+
+            <!-- Bottom Row: Tokenizer Comparison & Prompt Cache Explanation -->
+            <div class="bottom-grid">
+                <!-- Chart card -->
+                <div class="glass-panel chart-card">
+                    <div class="panel-title">
+                        <span>Tokenizer Comparison</span>
+                    </div>
+                    <div style="position: relative; height: 200px; width: 100%;">
+                        <canvas id="tokenizerChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Explanation / Tutorial card -->
+                <div class="glass-panel explanation-card">
+                    <div>
+                        <div class="panel-title">
+                            <span>How Prompt Caching Works</span>
+                        </div>
+                        <p style="font-size:0.9rem; line-height:1.5; color:var(--text-muted)">
+                            Prompt Caching saves up to **90%** of input costs. However, providers charge in blocks (typically 1024 tokens). By padding and structuring your prompts with TokenForge, you:
+                        </p>
+                        <ul class="expl-list">
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span>Align prompt prefixes exactly to block multiples to guarantee 100% cache hits.</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span>Strip boilerplate dates, headers, and logs so only raw information is billed.</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span>Selectively prune tools and system prompts based on current query routing.</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <div class="panel-title" style="margin-top:1.2rem; margin-bottom: 0.5rem; font-size:1rem; border:none; padding:0">
+                            <span>Claude Desktop MCP Settings</span>
+                        </div>
+                        <div class="mcp-config-box">
+                            <button class="copy-btn" onclick="copyMCPConfig()">Copy</button>
+                            <pre id="mcp-config-text">{
+  "mcpServers": {
+    "token-optimizer": {
+      "command": "python",
+      "args": ["C:/Users/risha/.gemini/antigravity/scratch/mcp-token-optimizer/mcp_server.py"]
+    }
+  }
+}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Preset examples depending on selected optimizer
+        const examples = {
+            logs: `2026-07-07T21:11:35.123456+05:30 [INFO] [SystemServer] Starting microsecond matching engine...
+2026-07-07T21:11:35.124590+05:30 [DEBUG] [MemoryAllocator] Pre-allocated 1024 matching buffers at address 0x7ffee3b4a220
+2026-07-07T21:11:35.126002+05:30 [WARNING] [ThreadCoordinator] Thread context switch latency is higher than 3 microseconds.
+2026-07-07T21:11:35.126002+05:30 [WARNING] [ThreadCoordinator] Thread context switch latency is higher than 3 microseconds.
+2026-07-07T21:11:35.126002+05:30 [WARNING] [ThreadCoordinator] Thread context switch latency is higher than 3 microseconds.
+2026-07-07T21:11:35.129999+05:30 [ERROR] [MatchingEngine] Critical error: failed to resolve order flow toxicity for order_id=9872.
+  at com.antigravity.oms.MatchingEngine.executeTrade(MatchingEngine.java:234)
+  at com.antigravity.oms.MatchingEngine.processOrder(MatchingEngine.java:102)
+  at com.antigravity.oms.SystemServer.main(SystemServer.java:45)
+2026-07-07T21:11:35.132000+05:30 [INFO] [SystemServer] Shuttling engine down gracefully...`,
+            
+            semantic: `The gen-AI landscape has shifted dramatically over the past year. LLMs have become a commodities market, where multiple providers offer models with varying capabilities and prices. When architecting an application, developers often choose GPT-4o or Claude 3.5 Sonnet because they are premium flagship models. However, using these models for basic tasks like classification or short text summaries can be highly cost-inefficient. That is why smart model routing is so important. By introducing an intelligence router in the system, simple requests can be routed to Gemini 1.5 Flash or GPT-4o-mini, saving up to 85% in billing. At the same time, we must maintain prompt caches. Prompt caching keeps KV tensors warm at the provider level, cutting pricing for repeated prefixes by 90%. Thus, combining routing, semantic caching, and context pruning allows developers to build extremely high-efficiency agents.`,
+            
+            cache_align: `SYSTEM INSTRUCTIONS: You are a helpful AI coding assistant.
+1. Always write clear code with comments.
+2. Use absolute file references.
+3. Make sure to optimize all performance-sensitive code paths.
+
+These instructions represent our static system prompt context. In a typical chat setup, the user sends a dynamic query, which changes the end of the prompt. But because the system prompt is static, it can be cached! If we pad this context block to fit exactly a multiple of 1024 tokens, we ensure that adding small user queries later does not shift the cache block layout, maintaining a perfect cache hit ratio.`,
+            
+            code_ast: `import os
+import sys
+import math
+import logging
+
+class OrderBook:
+    """Manages a sub-microsecond limit order book for high-frequency trading."""
+    def __init__(self, symbol: str):
+        self.symbol = symbol
+        self.bids = {}
+        self.asks = {}
+        self.logger = logging.getLogger("OrderBook")
+
+    def add_limit_order(self, order_id: int, price: float, qty: int, side: str) -> bool:
+        """Adds a limit order into the book depth hierarchy."""
+        self.logger.debug(f"Adding order {order_id} on {side}")
+        book = self.bids if side == "buy" else self.asks
+        if price not in book:
+            book[price] = []
+        book[price].append({"id": order_id, "qty": qty})
+        return True
+
+    def get_best_bid(self) -> float:
+        """Returns the highest bid price present in the book."""
+        if not self.bids:
+            return 0.0
+        return max(self.bids.keys())
+
+    def match_orders(self) -> list:
+        """Runs the matching execution engine loop against crossing limit orders."""
+        matches = []
+        # Complex execution logic ...
+        # (This body takes 200 lines in production, wasting valuable context tokens)
+        for bid_p in sorted(self.bids.keys(), reverse=True):
+            for ask_p in sorted(self.asks.keys()):
+                if bid_p >= ask_p:
+                    matches.append((bid_p, ask_p))
+        return matches`,
+            
+            data: `[
+  {
+    "id": 1,
+    "user": "Rishabh",
+    "role": "Administrator",
+    "activity_log": {
+      "session_id": "sess_872",
+      "ip_address": "192.168.1.50",
+      "actions": ["login", "view_dashboard", "edit_settings"]
+    },
+    "status": "active"
+  },
+  {
+    "id": 2,
+    "user": "Alex",
+    "role": "Developer",
+    "activity_log": {
+      "session_id": "sess_912",
+      "ip_address": "192.168.1.99",
+      "actions": ["pull_code", "run_tests"]
+    },
+    "status": "inactive"
+  }
+]`,
+            
+            chat_history: `[
+  {"role": "system", "content": "You are a database tuning advisor."},
+  {"role": "user", "content": "Hello, my PostgreSQL database is running slow on SELECT queries."},
+  {"role": "assistant", "content": "Hello! I can help you with that. First, check if your queries are using indexes. Let me know if you have EXPLAIN ANALYZE logs."},
+  {"role": "user", "content": "Yes, I ran explain analyze. Here is the query: SELECT * FROM users WHERE email = 'test@example.com'. It says Seq Scan on users."},
+  {"role": "assistant", "content": "The Sequential Scan indicates you do not have an index on the 'email' column. You can resolve this by running CREATE INDEX idx_users_email ON users(email);"},
+  {"role": "user", "content": "Ok I created the index. Now what about queries that join orders and users?"}
+]`,
+            
+            stopwords: `We have conducted a thorough performance evaluation of the trading routing gateway under intense load conditions. The results clearly demonstrate that the main cause of the sub-optimal latency is the garbage collection cycles within the memory pool coordinator. If we pre-allocate the memory blocks, the throughput will increase significantly.`,
+            
+            rag: `[
+  {
+    "text": "PostgreSQL indexing speeds up SELECT queries. By creating a B-Tree index on a column, queries matching that column bypass a full sequential scan and run in logarithmic time.",
+    "score": 0.92
+  },
+  {
+    "text": "PostgreSQL indexing speeds up SELECT queries. By creating a B-Tree index on a column, queries matching that column bypass a full sequential scan.",
+    "score": 0.88
+  },
+  {
+    "text": "Standard system requirements: 4GB RAM, Python 3.10+, and a local database instance. Standard installation requires pip install.",
+    "score": 0.22
+  }
+]`,
+            
+            xml: `<documents>
+  <document id="1">
+    <title>PostgreSQL Tuning Guide</title>
+    <content>Create indexes on joining keys to eliminate slow sequential scans on foreign tables.</content>
+  </document>
+  <document id="2">
+    <title>MySQL Partitioning</title>
+    <content>Horizontal database partitioning splits large tables into separate files based on ranges.</content>
+  </document>
+</documents>`,
+            
+            semantic_cache: `What are the system requirements for installation?`,
+            
+            model_router: `Please write a highly optimized Python implementation of a concurrent ring buffer queue that avoids mutex locks using multiprocessing value boundaries. Explain the CPU instruction ordering principles behind lock-free structures.`,
+            
+            tool_pruner: `[
+  {
+    "name": "git_status",
+    "description": "Checks the current modified files in the repository."
+  },
+  {
+    "name": "compile_database",
+    "description": "Compiles raw database schemas and runs SQL DDL scripts."
+  },
+  {
+    "name": "search_web",
+    "description": "Searches the web for tutorials and documentation."
+  }
+]`,
+            
+            system_prompt: `# COMMENT: This block regulates plotting behaviors
+<optional trigger="chart,graph,plot">
+When the user asks for a chart or visual, always render it using high-contrast svg blocks with responsive dimensions.
+</optional>
+
+# COMMENT: This block regulates general advice
+Always format code output in markdown blocks. Keep explanations concise.`
+        };
+
+        // Initialize Chart.js
+        let chart = null;
+
+        function initChart(before = 0, after = 0) {
+            const ctx = document.getElementById('tokenizerChart').getContext('2d');
+            if (chart) {
+                chart.destroy();
+            }
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['cl100k_base (GPT-4/Claude)', 'o200k_base (GPT-4o/o1)', 'Llama 3 (Approx)'],
+                    datasets: [
+                        {
+                            label: 'Original Tokens',
+                            data: [before, before * 0.95, before * 1.05], // Estimates
+                            backgroundColor: 'rgba(239, 68, 68, 0.45)',
+                            borderColor: 'rgba(239, 68, 68, 0.9)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Optimized Tokens',
+                            data: [after, after * 0.92, after * 1.02], // Estimates
+                            backgroundColor: 'rgba(16, 185, 129, 0.45)',
+                            borderColor: 'rgba(16, 185, 129, 0.9)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#9ca3af' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#9ca3af' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#f3f4f6', font: { family: 'Outfit' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Switch configuration and preset examples when selecting different optimizers
+        function switchOptimizer() {
+            const selected = document.getElementById("optimizer-select").value;
+            
+            // Toggle config sections
+            document.querySelectorAll(".config-section").forEach(s => s.classList.remove("active"));
+            const targetConfig = document.getElementById(`config-${selected}`);
+            if (targetConfig) {
+                targetConfig.classList.add("active");
+            }
+            
+            // Set input example
+            if (examples[selected]) {
+                document.getElementById("input-editor").value = examples[selected];
+                updateInputMetrics();
+            }
+        }
+
+        function updateInputMetrics() {
+            const text = document.getElementById("input-editor").value;
+            document.getElementById("char-before").innerText = `${text.length} chars`;
+        }
+
+        async function runOptimization() {
+            const text = document.getElementById("input-editor").value;
+            const optimizer = document.getElementById("optimizer-select").value;
+            
+            if (!text) {
+                alert("Please paste some text into the Input editor first!");
+                return;
+            }
+
+            // Collect config values
+            const config = {};
+            if (optimizer === "logs") {
+                config.max_head_lines = document.getElementById("log-head").value;
+                config.max_tail_lines = document.getElementById("log-tail").value;
+            } else if (optimizer === "semantic") {
+                config.target_ratio = document.getElementById("sem-ratio").value;
+            } else if (optimizer === "cache_align") {
+                config.target_block_tokens = document.getElementById("cache-block").value;
+                config.format_style = document.getElementById("cache-format").value;
+            } else if (optimizer === "code_ast") {
+                config.language = document.getElementById("ast-lang").value;
+                config.keep_docstrings = document.getElementById("ast-docs").checked;
+            } else if (optimizer === "data") {
+                config.target_format = document.getElementById("data-format").value;
+            } else if (optimizer === "chat_history") {
+                config.keep_turns = document.getElementById("chat-turns").value;
+            } else if (optimizer === "stopwords") {
+                config.aggressive = document.getElementById("stop-aggressive").checked;
+            } else if (optimizer === "rag") {
+                config.similarity_threshold = document.getElementById("rag-threshold").value;
+                config.min_score = document.getElementById("rag-min-score").value;
+            } else if (optimizer === "semantic_cache") {
+                config.threshold = document.getElementById("cache-threshold").value;
+            } else if (optimizer === "tool_pruner") {
+                config.query = document.getElementById("tool-query").value;
+                config.mandatory_tools = document.getElementById("tool-mandatory").value;
+            } else if (optimizer === "system_prompt") {
+                config.query = document.getElementById("sys-query").value;
+            }
+
+            try {
+                const response = await fetch("/api/optimize", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text, optimizer, config })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    alert(`Error running optimization: ${err.error || 'Server error'}`);
+                    return;
+                }
+
+                const res = await response.json();
+                
+                // Set output editor
+                document.getElementById("output-editor").value = res.optimized_text;
+                document.getElementById("char-after").innerText = `${res.optimized_text.length} chars`;
+
+                // Update Stats
+                const metrics = res.token_metrics["GPT-4 / Claude (cl100k_base)"];
+                document.getElementById("stat-tokens-before").innerText = metrics.before;
+                document.getElementById("stat-tokens-after").innerText = metrics.after;
+                document.getElementById("stat-tokens-saved").innerText = metrics.saved;
+                document.getElementById("stat-tokens-pct").innerText = `${metrics.percentage}% reduction`;
+
+                // API Cost calculation: cache hits or standard comparison
+                // Dynamic cached token read cost is roughly 10% of input cost.
+                // Standard: $15 / 1M tokens. Cached: $1.50 / 1M tokens.
+                const standardCost = (metrics.before * 15) / 1000000;
+                const optimizedCost = (metrics.after * 15) / 1000000;
+                const cachedCost = (metrics.after * 1.5) / 1000000;
+                
+                // Savings is standardCost - cachedCost
+                const totalSavings = standardCost - cachedCost;
+                
+                if (optimizer === "semantic_cache" && res.details.cached) {
+                    // 100% savings on cache hit
+                    document.getElementById("stat-cost-saved").innerText = `$${((metrics.before * 15) / 1000000).toFixed(4)}`;
+                } else {
+                    document.getElementById("stat-cost-saved").innerText = `$${totalSavings.toFixed(4)}`;
+                }
+
+                // Update Chart
+                const cl100k = res.token_metrics["GPT-4 / Claude (cl100k_base)"];
+                const o200k = res.token_metrics["GPT-4o / o1 (o200k_base)"];
+                const llama = res.token_metrics["Llama 3 (Approximate)"];
+                
+                chart.data.datasets[0].data = [cl100k.before, o200k.before, llama.before];
+                chart.data.datasets[1].data = [cl100k.after, o200k.after, llama.after];
+                chart.update();
+
+            } catch (err) {
+                console.error(err);
+                alert("Error connecting to the backend optimization server.");
+            }
+        }
+
+        function copyMCPConfig() {
+            const preText = document.getElementById("mcp-config-text").innerText;
+            navigator.clipboard.writeText(preText).then(() => {
+                alert("MCP config copied to clipboard!");
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("input-editor").addEventListener("input", updateInputMetrics);
+            switchOptimizer();
+            initChart(200, 80);
+        });
+    </script>
+</body>
+</html>
