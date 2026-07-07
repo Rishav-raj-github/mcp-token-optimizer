@@ -90,7 +90,7 @@ Add TokenForge to your local `claude_desktop_config.json`:
   "mcpServers": {
     "token-optimizer": {
       "command": "python",
-      "args": ["C:/Users/risha/.gemini/antigravity/scratch/mcp-token-optimizer/mcp_server.py"]
+      "args": ["C:/Users/risha/projects/mcp-token-optimizer/mcp_server.py"]
     }
   }
 }
