@@ -11,7 +11,7 @@
 [![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red.svg?style=for-the-badge)](https://github.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-TokenForge is a production-grade Python library, interactive web dashboard, and Model Context Protocol (MCP) server designed to expose **15 context-optimization and token-saving utilities** to AI agents (like Claude Desktop, Cursor, or Gemini).
+TokenForge is a production-grade Python library, interactive web dashboard, and Model Context Protocol (MCP) server designed to deliver **15 context-optimization and token-saving utilities** for LLM integrations, chat interfaces, and developer workflows.
 
 By integrating structural alignment, semantic pruning, model routing, and response caching, TokenForge helps developers **cut API billing costs by up to 90% and slash inference latency by up to 10x**.
 
@@ -96,7 +96,7 @@ Add TokenForge to your local `claude_desktop_config.json`:
 }
 ```
 
-Restart Claude Desktop, and the agent will automatically gain access to all optimization tools!
+Restart your environment/editor to load the new server tools.
 
 ---
 
